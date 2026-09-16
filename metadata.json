@@ -1,0 +1,7 @@
+{
+  "name": "Find My Token",
+  "description": "Your Turn. Without the Wait. Smart digital queue & token manager tailored for salons and barber shops in India.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

@@ -1,0 +1,63 @@
+<svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tt-fav-grad" x1="16" y1="36" x2="112" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00A3FF" />
+      <stop offset="45%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#9333EA" />
+    </linearGradient>
+
+    <linearGradient id="tt-fav-flap" x1="40" y1="92" x2="90" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93C5FD" />
+      <stop offset="35%" stop-color="#E0E7FF" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+
+    <linearGradient id="tt-fav-shadow" x1="45" y1="92" x2="90" y2="45" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.4" />
+      <stop offset="40%" stop-color="#000000" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <g transform="rotate(-24 64 64)">
+    <path
+      d="
+        M 24 36
+        H 104
+        A 12 12 0 0 1 116 48
+        V 56
+        A 8 8 0 0 0 116 72
+        V 80
+        A 12 12 0 0 1 104 92
+        H 24
+        A 12 12 0 0 1 12 80
+        V 72
+        A 8 8 0 0 0 12 56
+        V 48
+        A 12 12 0 0 1 24 36
+        Z
+      "
+      fill="url(#tt-fav-grad)"
+    />
+
+    <path
+      d="
+        M 36 92
+        C 72 92, 100 68, 88 40
+        C 72 68, 56 86, 36 92
+        Z
+      "
+      fill="url(#tt-fav-shadow)"
+    />
+
+    <path
+      d="
+        M 36 92
+        C 68 92, 96 68, 80 40
+        C 66 64, 52 80, 36 92
+        Z
+      "
+      fill="url(#tt-fav-flap)"
+    />
+  </g>
+</svg>
