@@ -15,7 +15,6 @@ import {
   ShieldCheck, 
   Lock,
   ChevronRight,
-  Info
 } from 'lucide-react';
 
 interface CategoryScreenProps {
@@ -47,6 +46,15 @@ export const CategoryScreen: React.FC<CategoryScreenProps> = ({ onSelectCategory
       icon: Scissors,
       liveCount: '4 Locations Live',
       description: 'Check live turn counter, view queue lengths & take digital tokens.',
+    },
+    {
+      id: 'beauty_parlours',
+      name: 'Beauty Parlours & Spas',
+      tagline: 'Skin care, bridal makeover & luxury spa turns',
+      badge: 'Available',
+      isAvailable: true,
+      icon: Sparkles,
+      description: 'Dedicated appointment queues for certified beauticians.',
     },
     {
       id: 'clinics',
@@ -102,25 +110,21 @@ export const CategoryScreen: React.FC<CategoryScreenProps> = ({ onSelectCategory
       icon: Wrench,
       description: 'Intake and pick-up turn tracking for authorized service points.',
     },
-    {
-      id: 'beauty_parlours',
-      name: 'Beauty Parlours & Spas',
-      tagline: 'Skin care, bridal makeover & luxury spa turns',
-      badge: 'Coming Soon',
-      isAvailable: false,
-      icon: Sparkles,
-      description: 'Dedicated appointment queues for certified beauticians.',
-    },
+    
   ];
 
   const handleCategoryClick = (cat: CategoryItem) => {
-    if (cat.isAvailable) {
-      onSelectCategory(cat.id);
-    } else {
-      setComingSoonToast(`${cat.name} queue management is coming soon!`);
-      setTimeout(() => setComingSoonToast(null), 3000);
-    }
-  };
+  if (cat.isAvailable) {
+    onSelectCategory(cat.id);
+    return;
+  }
+
+  setComingSoonToast('Coming Soon');
+
+  setTimeout(() => {
+    setComingSoonToast(null);
+  }, 2500);
+};
 
   return (
     <div className="px-4 py-4 space-y-4">
@@ -160,12 +164,14 @@ export const CategoryScreen: React.FC<CategoryScreenProps> = ({ onSelectCategory
 
       {/* Toast Notification */}
       {comingSoonToast && (
-        <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200 text-xs font-bold flex items-center gap-2 transition">
-          <Info className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-          <span>{comingSoonToast}</span>
-        </div>
-      )}
-
+  <div
+    role="status"
+    aria-live="polite"
+    className="fixed bottom-24 left-1/2 z-[60] -translate-x-1/2 px-4 py-2.5 rounded-2xl bg-[#0F172A] text-white text-xs font-bold shadow-lg border border-slate-700/80 whitespace-nowrap pointer-events-none"
+  >
+    {comingSoonToast}
+  </div>
+)}
       {/* Categories Grid */}
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs font-bold text-[#0F172A] dark:text-[#94A3B8] px-1">
