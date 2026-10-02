@@ -1,31 +1,12 @@
-import React, { useState, useEffect, useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-  StatusBar,
-  Alert,
-  Modal,
-} from "react-native";
-import Svg, { Path, Rect, LinearGradient, Stop, Defs, Line } from "react-native-svg";
-import { Ionicons, Feather, MaterialIcons, Entypo } from "@expo/vector-icons";
-import * as Notifications from "expo-notifications";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
-import useQueueStore from "../store/queueStore";
-import TokenModal from "../components/TokenModal";
-import PaymentDetailsModal from "../components/PaymentDetailsModal";
-import SalonDetailsModal from "../components/SalonDetailsModal";
+import React, { useEffect, useMemo, useState } from "react";
 
-// Constants for layout
-const TICKET_ASPECT_RATIO = 1.9; // 380/200 physical proportion
-const TICKET_SVG_WIDTH = 380;
-const TICKET_SVG_HEIGHT = 200;
-const STUB_RATIO = 0.65; // Matches the physical perforation line location
+interface RetroTicketProps {
+  token: any;
+  navigation?: any;
+}
 
-// Advanced multi-stop gradients for a premium printed look
+const TICKET_ASPECT_RATIO = 1.9;
+
 const getGradientProps = (baseColorName: string) => {
   switch (baseColorName) {
     case "Orange":
@@ -37,492 +18,702 @@ const getGradientProps = (baseColorName: string) => {
     case "Purple":
       return { start: "#9D4EDD", mid: "#7B2CBF", end: "#5A189A" };
     case "Blue":
-      return { start: "#4da3ff", mid: "#1e88e5", end: "#0050CB" };
+      return { start: "#4DA3FF", mid: "#1E88E5", end: "#0050CB" };
     case "Coral":
       return { start: "#FF512F", mid: "#F09819", end: "#DD2476" };
     case "Cyan":
       return { start: "#00D2FF", mid: "#0088CC", end: "#005580" };
-    default: // Default Blue
-      return { start: "#4da3ff", mid: "#1e88e5", end: "#0050CB" };
+    default:
+      return { start: "#4DA3FF", mid: "#1E88E5", end: "#0050CB" };
   }
 };
 
-// Properly calculate deterministic colour without relying on string length
 const getTokenColor = (token: any) => {
-  const colors = ['Orange', 'Pink', 'Yellow', 'Purple', 'Blue', 'Coral', 'Cyan'];
-  if (token.color) return token.color; 
-  
+  const colors = [
+    "Orange",
+    "Pink",
+    "Yellow",
+    "Purple",
+    "Blue",
+    "Coral",
+    "Cyan",
+  ];
+
+  if (token?.color) return token.color;
+
   let hash = 0;
-  const str = token.id || token.tokenNumber || "default";
+  const str = token?.id || token?.tokenNumber || "default";
+
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
+
   return colors[Math.abs(hash) % colors.length];
 };
 
-const PhysicalTicketShape: React.FC<{ colorProps: any, width: number }> = ({ colorProps, width }) => {
-  const height = width / TICKET_ASPECT_RATIO;
-  
-  // A highly accurate physical ticket boundary with rounded corners and repeated inward notches
+const TicketBackground = ({
+  gradient,
+}: {
+  gradient: { start: string; mid: string; end: string };
+}) => {
   const ticketPath = `
     M 15 0
-    L 242 0 A 5 5 0 0 0 252 0 L 365 0
+    L 242 0
+    A 5 5 0 0 0 252 0
+    L 365 0
     A 15 15 0 0 1 380 15
-    L 380 45 A 5 5 0 0 0 380 55
-    L 380 85 A 15 15 0 0 0 380 115
-    L 380 145 A 5 5 0 0 0 380 155
+    L 380 45
+    A 5 5 0 0 0 380 55
+    L 380 85
+    A 15 15 0 0 0 380 115
+    L 380 145
+    A 5 5 0 0 0 380 155
     L 380 185
     A 15 15 0 0 1 365 200
-    L 252 200 A 5 5 0 0 0 242 200 L 15 200
+    L 252 200
+    A 5 5 0 0 0 242 200
+    L 15 200
     A 15 15 0 0 1 0 185
-    L 0 165 A 5 5 0 0 0 0 155
-    L 0 150 A 5 5 0 0 0 0 140
-    L 0 120 A 20 20 0 0 0 0 80
-    L 0 60 A 5 5 0 0 0 0 50
-    L 0 45 A 5 5 0 0 0 0 35
+    L 0 165
+    A 5 5 0 0 0 0 155
+    L 0 150
+    A 5 5 0 0 0 0 140
+    L 0 120
+    A 20 20 0 0 0 0 80
+    L 0 60
+    A 5 5 0 0 0 0 50
+    L 0 45
+    A 5 5 0 0 0 0 35
     L 0 15
     A 15 15 0 0 1 15 0
     Z
   `;
 
   return (
-    <View style={{ width: width, height: height, position: 'absolute' }}>
-      <Svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${TICKET_SVG_WIDTH} ${TICKET_SVG_HEIGHT}`}
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <Defs>
-          {/* Main Diagonal Background Gradient */}
-          <LinearGradient id="ticketGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={colorProps.start} stopOpacity="1" />
-            <Stop offset="50%" stopColor={colorProps.mid} stopOpacity="1" />
-            <Stop offset="100%" stopColor={colorProps.end} stopOpacity="1" />
-          </LinearGradient>
-          
-          {/* Dimensional Light/Dark Overlay for physical depth */}
-          <LinearGradient id="overlayGradient" x1="20%" y1="0%" x2="80%" y2="100%">
-            <Stop offset="0%" stopColor="white" stopOpacity="0.25" />
-            <Stop offset="100%" stopColor="black" stopOpacity="0.15" />
-          </LinearGradient>
-        </Defs>
+    <svg
+      width="100%"
+      height="100%"
+      viewBox="0 0 380 200"
+      preserveAspectRatio="none"
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+      }}
+    >
+      <defs>
+        <linearGradient
+          id="ticketGradient"
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="100%"
+        >
+          <stop offset="0%" stopColor={gradient.start} />
+          <stop offset="50%" stopColor={gradient.mid} />
+          <stop offset="100%" stopColor={gradient.end} />
+        </linearGradient>
 
-        {/* Base Colored Ticket Shape */}
-        <Path d={ticketPath} fill="url(#ticketGradient)" />
+        <linearGradient
+          id="overlayGradient"
+          x1="20%"
+          y1="0%"
+          x2="80%"
+          y2="100%"
+        >
+          <stop offset="0%" stopColor="white" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="black" stopOpacity="0.15" />
+        </linearGradient>
+      </defs>
 
-        {/* Tonal Overlay applied perfectly to the exact same shape */}
-        <Path d={ticketPath} fill="url(#overlayGradient)" />
+      <path d={ticketPath} fill="url(#ticketGradient)" />
+      <path d={ticketPath} fill="url(#overlayGradient)" />
 
-        {/* Integrated Physical Perforation Line */}
-        <Line 
-          x1="247" y1="12" 
-          x2="247" y2="188" 
-          stroke="rgba(255,255,255,0.45)" 
-          strokeWidth="2" 
-          strokeDasharray="6 6" 
-        />
-      </Svg>
-    </View>
+      <line
+        x1="247"
+        y1="12"
+        x2="247"
+        y2="188"
+        stroke="rgba(255,255,255,0.45)"
+        strokeWidth="2"
+        strokeDasharray="6 6"
+      />
+    </svg>
   );
 };
-
-interface RetroTicketProps {
-  token: any;
-  navigation: any;
-}
 
 const RetroTicket: React.FC<RetroTicketProps> = ({ token, navigation }) => {
-  // --- EXISTING FUNCTIONALITY / STATE (RETAINED) ---
-  const { salons, removeToken, updateToken } = useQueueStore();
-  const [ticketWidth, setTicketWidth] = useState(0);
+  const [reminderTime, setReminderTime] = useState<Date | null>(
+    token?.reminderTime ? new Date(token.reminderTime) : null
+  );
 
-  const salon = useMemo(() => {
-    return salons.find((s) => s.id === token.salonId);
-  }, [salons, token.salonId]);
+  const tokenColorName = useMemo(
+    () => getTokenColor(token),
+    [token]
+  );
 
-  const queuePosition = useMemo(() => {
-    if (!salon || !salon.queue) return { position: 0, waitingTime: 0 };
-    const index = salon.queue.findIndex((t) => t.id === token.id);
-    return { position: index + 1, waitingTime: (index + 1) * 15 }; 
-  }, [salon, token]);
-
-  const [notificationPermission, setNotificationPermission] = useState<string | null>(null);
-  const [isReminderPickerVisible, setReminderPickerVisible] = useState(false);
-  const [reminderTime, setReminderTime] = useState<Date | null>(token.reminderTime ? new Date(token.reminderTime) : null);
-  const [tokenColorName, setTokenColorName] = useState('Blue');
+  const gradient = useMemo(
+    () => getGradientProps(tokenColorName),
+    [tokenColorName]
+  );
 
   useEffect(() => {
-    // Utilize safe automatic rotation based on content, not string length
-    setTokenColorName(getTokenColor(token));
-
-    (async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      setNotificationPermission(status);
-    })();
+    setReminderTime(
+      token?.reminderTime ? new Date(token.reminderTime) : null
+    );
   }, [token]);
 
-  const colorProps = getGradientProps(tokenColorName);
+  const salon = token?.salon || token?.business || null;
+
+  const queuePosition =
+    token?.queuePosition ??
+    token?.position ??
+    1;
+
+  const waitingTime =
+    token?.waitingTime ??
+    token?.estimatedWait ??
+    queuePosition * 15;
+
+  const customerName =
+    token?.customerName ||
+    token?.name ||
+    "Rahul";
+
+  const tokenNumber =
+    token?.tokenNumber ||
+    token?.token ||
+    "RF-27";
+
+  const service =
+    token?.serviceName ||
+    token?.service ||
+    "Haircut & Styling";
+
+  const status =
+    token?.status?.toUpperCase() ||
+    "ACTIVE";
+
+  const salonName =
+    salon?.name ||
+    salon?.business_name ||
+    "Luxury Salon";
+
+  const salonAddress =
+    salon?.address ||
+    "Your salon";
+
+  const handleBack = () => {
+    if (navigation?.navigate) {
+      navigation.navigate("Home");
+      return;
+    }
+
+    if (window.history.length > 1) {
+      window.history.back();
+    }
+  };
+
+  const handleCancel = () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        "Are you sure you want to cancel this token?"
+      );
+
+      if (confirmed) {
+        window.dispatchEvent(
+          new CustomEvent("find-my-token:cancel-token", {
+            detail: token,
+          })
+        );
+      }
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A2E" />
-      
-      {/* Header section */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate("Home")}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Token Details</Text>
-        <TouchableOpacity onPress={() => {}}>
-          <Entypo name="dots-three-vertical" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <button
+          type="button"
+          onClick={handleBack}
+          style={styles.iconButton}
+          aria-label="Go back"
+        >
+          ←
+        </button>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* PHYSICAL TICKET VIEW */}
-        <View style={styles.ticketContainer} onLayout={(event) => {
-          const { width } = event.nativeEvent.layout;
-          setTicketWidth(width);
-        }}>
-          {/* SVG Background Layer */}
-          <PhysicalTicketShape colorProps={colorProps} width={ticketWidth} />
+        <div style={styles.headerTitle}>Token Details</div>
 
-          {/* Ticket Content Overlay (Flexed to match physical perforation ratio ~65/35) */}
-          <View style={StyleSheet.absoluteFillObject}>
-            <View style={styles.ticketContent}>
-              
-              {/* MAIN SECTION (LEFT) */}
-              <View style={styles.ticketMain}>
-                {/* Top Branding - Shown ONLY once at the top */}
-                <View style={styles.topBranding}>
-                  <View style={styles.ticketIconContainer}>
-                    <Svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                      <Path d="M22 10V6c0-1.11-.89-2-2-2H4c-1.11 0-2 .89-2 2v4c1.1 0 2 .9 2 2s-.9 2-2 2v4c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2v-4c-1.1 0-2-.9-2-2s.9-2 2-2zM4 6h16v2.67c-1.25.43-2 1.6-2 2.83s.75 2.4 2 2.83V18H4v-2.67c1.25-.43 2-1.6 2-2.83s-.75-2.4-2-2.83V6z" />
-                    </Svg>
-                  </View>
-                  <Text style={styles.brandingText}>Find My Token</Text>
-                </View>
+        <button
+          type="button"
+          onClick={() => {}}
+          style={styles.iconButton}
+          aria-label="More options"
+        >
+          ⋮
+        </button>
+      </div>
 
-                {/* Exact Requested Hierarchy */}
-                <View style={styles.tokenDataContainer}>
-                  <Text style={styles.yourTokenLabel}>YOUR TOKEN</Text>
-                  
-                  <View style={styles.customerNameContainer}>
-                    <Ionicons name="person" size={13} color="white" style={styles.customerIcon} />
-                    <Text style={styles.customerNameText} numberOfLines={1}>
-                      {token.customerName || "Rahul"}
-                    </Text>
-                  </View>
+      <div style={styles.scrollContent}>
+        <div style={styles.ticketContainer}>
+          <TicketBackground gradient={gradient} />
 
-                  <Text style={styles.tokenNumber} adjustsFontSizeToFit numberOfLines={1}>
-                    {token.tokenNumber || "RF-27"}
-                  </Text>
-                </View>
-              </View>
+          <div style={styles.ticketContent}>
+            <div style={styles.ticketMain}>
+              <div style={styles.topBranding}>
+                <div style={styles.ticketIcon}>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="white"
+                  >
+                    <path d="M22 10V6c0-1.11-.89-2-2-2H4c-1.11 0-2 .89-2 2v4c1.1 0 2 .9 2 2s-.9 2-2 2v4c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2v-4c-1.1 0-2-.9-2-2s.9-2 2-2zM4 6h16v2.67c-1.25.43-2 1.6-2 2.83s.75 2.4 2 2.83V18H4v-2.67c1.25-.43 2-1.6-2-2.83V6z" />
+                  </svg>
+                </div>
 
-              {/* STUB SECTION (RIGHT) */}
-              <View style={styles.ticketStub}>
-                {/* Status Pill (Zero Green - High Contrast Neutral) */}
-                <View style={styles.statusPill}>
-                  <View style={styles.statusCircle} />
-                  <Text style={styles.statusText}>{token.status ? token.status.toUpperCase() : "ACTIVE"}</Text>
-                </View>
+                <span style={styles.brandingText}>
+                  Find My Token
+                </span>
+              </div>
 
-                <View style={styles.stubDetails}>
-                  <View style={styles.clockIconContainer}>
-                     <Feather name="clock" size={20} color="white" />
-                  </View>
-                  <Text style={styles.stubWaitText}>PLEASE WAIT{"\n"}FOR YOUR TURN</Text>
-                </View>
-              </View>
-              
-            </View>
-          </View>
-        </View>
+              <div style={styles.tokenDataContainer}>
+                <div style={styles.yourTokenLabel}>
+                  YOUR TOKEN
+                </div>
 
-        {/* --- BELOW-TICKET CONTENT (UNCHANGED) --- */}
-        <View style={styles.infoSection}>
-          <Text style={styles.salonName}>{salon ? salon.name : "Luxury Salon"}</Text>
-          <Text style={styles.salonAddress}>{salon ? salon.address : "123 Main St, Springfield"}</Text>
-          
-          <View style={styles.metricsContainer}>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricValue}>{queuePosition.position}</Text>
-              <Text style={styles.metricLabel}>Position</Text>
-            </View>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricValue}>{queuePosition.waitingTime} min</Text>
-              <Text style={styles.metricLabel}>Est. Wait</Text>
-            </View>
-          </View>
+                <div style={styles.customerNameContainer}>
+                  <span style={styles.customerIcon}>●</span>
 
-          <View style={styles.actionsList}>
-            <TouchableOpacity style={styles.actionItem}>
-              <View style={styles.actionIconContainer}>
-                <MaterialIcons name="local-offer" size={20} color="#4A90E2" />
-              </View>
-              <View>
-                <Text style={styles.actionTitle}>Service</Text>
-                <Text style={styles.actionDetail}>{token.service || "Haircut & Styling"}</Text>
-              </View>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionItem}>
-              <View style={styles.actionIconContainer}>
-                <Feather name="bell" size={20} color="#4A90E2" />
-              </View>
-              <View>
-                <Text style={styles.actionTitle}>Reminder</Text>
-                <Text style={styles.actionDetail}>{reminderTime ? `At ${reminderTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "Not set"}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+                  <span style={styles.customerNameText}>
+                    {customerName}
+                  </span>
+                </div>
 
-          <TouchableOpacity style={styles.cancelButton}>
-            <Text style={styles.cancelButtonText}>Cancel Token</Text>
-          </TouchableOpacity>
-        </View>
+                <div style={styles.tokenNumber}>
+                  {tokenNumber}
+                </div>
+              </div>
+            </div>
 
-      </ScrollView>
-    </SafeAreaView>
+            <div style={styles.ticketStub}>
+              <div style={styles.statusPill}>
+                <span style={styles.statusCircle} />
+                <span style={styles.statusText}>
+                  {status}
+                </span>
+              </div>
+
+              <div style={styles.stubDetails}>
+                <div style={styles.clockIconContainer}>
+                  <span style={styles.clockIcon}>◷</span>
+                </div>
+
+                <div style={styles.stubWaitText}>
+                  PLEASE WAIT
+                  <br />
+                  FOR YOUR TURN
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.infoSection}>
+          <div style={styles.salonName}>
+            {salonName}
+          </div>
+
+          <div style={styles.salonAddress}>
+            {salonAddress}
+          </div>
+
+          <div style={styles.metricsContainer}>
+            <div style={styles.metricCard}>
+              <div style={styles.metricValue}>
+                {queuePosition}
+              </div>
+
+              <div style={styles.metricLabel}>
+                Position
+              </div>
+            </div>
+
+            <div style={styles.metricCard}>
+              <div style={styles.metricValue}>
+                {waitingTime} min
+              </div>
+
+              <div style={styles.metricLabel}>
+                Est. Wait
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.actionsList}>
+            <div style={styles.actionItem}>
+              <div style={styles.actionIconContainer}>
+                ✂
+              </div>
+
+              <div>
+                <div style={styles.actionTitle}>
+                  Service
+                </div>
+
+                <div style={styles.actionDetail}>
+                  {service}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                ...styles.actionItem,
+                borderBottom: "none",
+              }}
+            >
+              <div style={styles.actionIconContainer}>
+                🔔
+              </div>
+
+              <div>
+                <div style={styles.actionTitle}>
+                  Reminder
+                </div>
+
+                <div style={styles.actionDetail}>
+                  {reminderTime
+                    ? `At ${reminderTime.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}`
+                    : "Not set"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCancel}
+            style={styles.cancelButton}
+          >
+            Cancel Token
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
-const styles = StyleSheet.create({
+const styles: Record<string, React.CSSProperties> = {
   container: {
-    flex: 1,
+    minHeight: "100vh",
     backgroundColor: "#11111E",
+    color: "white",
+    fontFamily:
+      "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
+
   header: {
-    flexDirection: "row",
+    height: 64,
+    display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#2A2A40",
+    padding: "0 20px",
+    borderBottom: "1px solid #2A2A40",
+    boxSizing: "border-box",
   },
+
   headerTitle: {
     color: "white",
     fontSize: 18,
-    fontWeight: "600",
-  },
-  scrollContent: {
-    paddingBottom: 40,
+    fontWeight: 600,
   },
 
-  // NEW TICKET LAYOUT
+  iconButton: {
+    width: 40,
+    height: 40,
+    border: "none",
+    background: "transparent",
+    color: "white",
+    fontSize: 25,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  scrollContent: {
+    width: "100%",
+    maxWidth: 720,
+    margin: "0 auto",
+    paddingBottom: 40,
+    boxSizing: "border-box",
+  },
+
   ticketContainer: {
     width: "92%",
-    alignSelf: "center",
-    marginTop: 25,
-    marginBottom: 20,
-    aspectRatio: TICKET_ASPECT_RATIO,
-    // Refined premium shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 15,
-    position: 'relative',
-    overflow: 'visible',
+    margin: "25px auto 20px",
+    aspectRatio: String(TICKET_ASPECT_RATIO),
+    position: "relative",
+    overflow: "hidden",
+    filter:
+      "drop-shadow(0 8px 10px rgba(0,0,0,0.4))",
   },
+
   ticketContent: {
-    flex: 1,
-    flexDirection: 'row',
+    position: "absolute",
+    inset: 0,
+    display: "flex",
   },
-  
-  // Left side mapped dynamically to the perforation split (.65 / .35)
+
   ticketMain: {
     flex: 0.65,
-    paddingHorizontal: 22,
-    paddingVertical: 18,
-    justifyContent: 'space-between',
+    minWidth: 0,
+    padding: "18px 22px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    boxSizing: "border-box",
   },
+
   topBranding: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
   },
-  ticketIconContainer: {
+
+  ticketIcon: {
     marginRight: 6,
     opacity: 0.85,
+    display: "flex",
   },
+
   brandingText: {
-    color: 'white',
+    color: "white",
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: 700,
     letterSpacing: 0.3,
   },
+
   tokenDataContainer: {
-    marginBottom: 2, // Fine-tuned vertical alignment
+    marginBottom: 2,
   },
+
   yourTokenLabel: {
-    color: 'rgba(255,255,255,0.7)',
+    color: "rgba(255,255,255,0.7)",
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: 800,
     letterSpacing: 1.5,
     marginBottom: 8,
   },
+
   customerNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     marginBottom: 4,
-  },
-  customerIcon: {
-    marginRight: 5,
-    opacity: 0.9,
-  },
-  customerNameText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    opacity: 0.95,
-  },
-  tokenNumber: {
-    color: 'white',
-    fontSize: 76,
-    fontWeight: '900',
-    letterSpacing: -1.5,
-    marginLeft: -3, 
-    lineHeight: 85, 
+    minWidth: 0,
   },
 
-  // Right Side (Detachable Stub)
+  customerIcon: {
+    marginRight: 5,
+    fontSize: 10,
+    opacity: 0.9,
+  },
+
+  customerNameText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: 600,
+    opacity: 0.95,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+
+  tokenNumber: {
+    color: "white",
+    fontSize: "clamp(42px, 10vw, 76px)",
+    fontWeight: 900,
+    letterSpacing: -1.5,
+    lineHeight: 1,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+
   ticketStub: {
     flex: 0.35,
-    paddingVertical: 18,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    minWidth: 0,
+    padding: "18px 10px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "space-between",
+    boxSizing: "border-box",
   },
+
   statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)', // Clean, dark, non-green treatment
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    display: "flex",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
+    padding: "6px 12px",
     borderRadius: 20,
     marginTop: 5,
+    maxWidth: "100%",
+    boxSizing: "border-box",
   },
+
   statusCircle: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', // High-contrast neutral
+    borderRadius: "50%",
+    backgroundColor: "rgba(255,255,255,0.9)",
     marginRight: 6,
+    flexShrink: 0,
   },
+
   statusText: {
-    color: 'white',
+    color: "white",
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: 800,
     letterSpacing: 0.8,
+    whiteSpace: "nowrap",
   },
+
   stubDetails: {
-    alignItems: 'center',
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
     marginBottom: 10,
   },
+
   clockIconContainer: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: "rgba(255,255,255,0.15)",
     width: 44,
     height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 12,
   },
+
+  clockIcon: {
+    color: "white",
+    fontSize: 25,
+    lineHeight: 1,
+  },
+
   stubWaitText: {
-    color: 'white',
+    color: "white",
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: 700,
     letterSpacing: 0.5,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 14,
     opacity: 0.9,
   },
 
-  // BELOW-TICKET CONTENT
   infoSection: {
-    paddingHorizontal: 20,
+    padding: "0 20px",
     marginTop: 10,
   },
+
   salonName: {
     color: "white",
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: 700,
     marginBottom: 3,
   },
+
   salonAddress: {
     color: "#888899",
     fontSize: 14,
     marginBottom: 20,
   },
+
   metricsContainer: {
+    display: "flex",
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 12,
     marginBottom: 20,
   },
+
   metricCard: {
     backgroundColor: "#1A1A2E",
-    width: "48%",
+    flex: 1,
     padding: 15,
     borderRadius: 12,
-    alignItems: "center",
+    textAlign: "center",
+    boxSizing: "border-box",
   },
+
   metricValue: {
     color: "white",
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: 700,
     marginBottom: 4,
+    textAlign: "center",
   },
+
   metricLabel: {
     color: "#888899",
     fontSize: 12,
+    textAlign: "center",
   },
+
   actionsList: {
     backgroundColor: "#1A1A2E",
     borderRadius: 12,
-    padding: 10,
+    padding: "0 10px",
     marginBottom: 20,
   },
+
   actionItem: {
+    display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#2A2A40",
+    padding: "12px 0",
+    borderBottom: "1px solid #2A2A40",
   },
+
   actionIconContainer: {
     backgroundColor: "#2A2A40",
     width: 40,
     height: 40,
     borderRadius: 8,
+    display: "flex",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 15,
+    flexShrink: 0,
   },
+
   actionTitle: {
     color: "#888899",
     fontSize: 12,
   },
+
   actionDetail: {
     color: "white",
     fontSize: 15,
-    fontWeight: "500",
+    fontWeight: 500,
   },
+
   cancelButton: {
-    backgroundColor: "#c62828", 
-    paddingVertical: 15,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  cancelButtonText: {
+    width: "100%",
+    border: "none",
+    backgroundColor: "#c62828",
     color: "white",
+    padding: "15px 20px",
+    borderRadius: 12,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: 600,
+    cursor: "pointer",
   },
-});
+};
 
 export default RetroTicket;
-                                                             
