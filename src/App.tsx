@@ -8,7 +8,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useAppStore } from './store';
 import { Header } from './components/Header';
 import { SalonCard } from './components/SalonCard';
-import RetroTicket from './components/RetroTicket';
+import { RetroTicket } from './components/RetroTicket';
 import { ServiceSelectModal } from './components/ServiceSelectModal';
 import { BusinessDashboard } from './components/BusinessDashboard';
 import { FutureBusinessDashboard } from './components/FutureBusinessDashboard';
