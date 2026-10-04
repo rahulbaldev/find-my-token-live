@@ -416,16 +416,6 @@ export const LoginScreen: React.FC = () => {
                     </button>
                   </form>
 
-                  {/* Quick Demo Pre-fill */}
-                  <div className="pt-2 border-t border-slate-200/90 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={handleQuickCustomerDemo}
-                      className="w-full py-2 px-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 transition text-center cursor-pointer"
-                    >
-                      ⚡ Quick Demo: Pre-fill Rahul Sharma (+91 98765 43210)
-                    </button>
-                  </div>
                 </div>
               </div>
             </motion.div>
