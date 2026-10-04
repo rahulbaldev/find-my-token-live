@@ -156,20 +156,6 @@ export const LoginScreen: React.FC = () => {
     login(regOwnerName.trim(), formattedPhone, 'business', 'salon', newSalonId);
   };
 
-  // Quick fill helper for demo testing (Customer)
-  const handleQuickCustomerDemo = () => {
-    setName('Rahul Sharma');
-    setPhone('9876543210');
-    setPassword('pass1234');
-  };
-
-  // Quick fill helper for demo testing (Salon Partner - strictly generic, no personal names)
-  const handleQuickSalonDemo = () => {
-    setBizPhone('9811122334');
-    setBizPassword('owner123');
-    setErrorMsg(null);
-  };
-
   // Helper icon for business types
   const renderTypeIcon = (typeId: BusinessType) => {
     switch (typeId) {
