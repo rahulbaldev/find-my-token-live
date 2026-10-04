@@ -669,7 +669,7 @@ export const LoginScreen: React.FC = () => {
                       type="tel"
                       value={bizPhone}
                       onChange={(e) => setBizPhone(e.target.value)}
-                      placeholder="98111 22334"
+                      placeholder="Enter your mobile number"
                       maxLength={10}
                       className={`w-full pl-12 pr-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-mono font-medium transition focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                         isDarkMode
@@ -690,7 +690,7 @@ export const LoginScreen: React.FC = () => {
                       type={showBizPassword ? 'text' : 'password'}
                       value={bizPassword}
                       onChange={(e) => setBizPassword(e.target.value)}
-                      placeholder="Enter owner password (e.g. owner123)"
+                      placeholder="Enter your full name"
                       className={`w-full px-3.5 pr-10 py-2.5 rounded-xl border text-xs sm:text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                         isDarkMode
                           ? 'bg-[#0B1120] border-slate-700/60 text-[#F8FAFC] placeholder:text-slate-500'
@@ -716,16 +716,6 @@ export const LoginScreen: React.FC = () => {
                   <span>Sign In to Owner Portal</span>
                 </button>
 
-                {/* Quick Demo Pre-fill (Category-focused, NO personal names) */}
-                <div className="pt-2 border-t border-slate-200/90 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={handleQuickSalonDemo}
-                    className="w-full py-2 px-3 rounded-lg border border-dashed border-blue-300 dark:border-blue-700/60 text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 transition text-center cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <span>⚡ Quick Demo: Pre-fill Salon Partner Account (+91 98111 22334)</span>
-                  </button>
-                </div>
               </form>
             )}
 
@@ -778,7 +768,7 @@ export const LoginScreen: React.FC = () => {
                     maxLength={10}
                     value={regMobile}
                     onChange={(e) => setRegMobile(e.target.value)}
-                    placeholder="e.g. 98123 45678"
+                    placeholder="Enter your mobile number"
                     className={`w-full px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-mono font-medium transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       isDarkMode
                         ? 'bg-[#0B1120] border-slate-700/60 text-[#F8FAFC] placeholder:text-slate-500'
